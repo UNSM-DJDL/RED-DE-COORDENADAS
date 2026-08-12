@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Coordenadas Satelital</title>
     
+    <!-- Cargamos las librerías guardadas localmente en tu cuenta -->
+    <script src="leaflet.js"></script>
+    
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f6; margin: 20px; color: #333; }
         .main-container { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
@@ -22,14 +25,6 @@
         .btn-descargar { display: block; width: 100%; background-color: #2980b9; color: white; text-align: center; padding: 12px; border: none; border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer; }
         .btn-descargar:hover { background-color: #1f618d; }
     </style>
-    
-    <script>
-        // Truco técnico: Forzar la carga de estilos de Leaflet uniendo texto roto
-        var linkLeaflet = document.createElement('link');
-        linkLeaflet.rel = 'stylesheet';
-        linkLeaflet.href = 'https://un' + '://pkg.com' + 'flet@1.9.4/dist/lea' + 'flet.css';
-        document.head.appendChild(linkLeaflet);
-    </script>
 </head>
 <body>
 <div class="main-container">
@@ -84,31 +79,24 @@
 </div>
 
 <script>
-    // Inyección dinámica imbatible de los archivos ejecutables JavaScript de mapas y UTM
-    var scriptLeaflet = document.createElement('script');
-    scriptLeaflet.src = 'https://un' + '://pkg.com' + 'flet@1.9.4/dist/lea' + 'flet.js';
-    document.body.appendChild(scriptLeaflet);
-
-    var scriptProj4 = document.createElement('script');
-    scriptProj4.src = 'https://un' + '://pkg.com' + 'j4@2.11.0/dist/pro' + 'j4.js';
-    document.body.appendChild(scriptProj4);
-</script>
-<script>
-    // Esperamos 1 segundo para asegurar que las librerías inyectadas se hayan descargado por completo
+    // Esperamos a que la inyección local termine de procesar las librerías
     setTimeout(function() {
-        window.utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
-        window.wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
+        const utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
+        const wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
 
-        window.map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
+        const map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
 
         L.tileLayer('https://google.com{x}&y={y}&z={z}', {
             maxZoom: 20,
             attribution: '© Google Satélite'
-        }).addTo(window.map);
+        }).addTo(map);
 
+        window.mapGlobal = map;
+        window.utmZonaGlobal = utmZona;
+        window.wgs84Global = wgs84;
         window.capaPoligono = null;
         window.datosGeograficosKML = null;
-    }, 1000);
+    }, 800);
 
     function calcularAreaMetrica(puntos) {
         let area = 0;
@@ -142,15 +130,14 @@
             const areaHA = areaM2 / 10000;
             document.getElementById('calculo-area').innerHTML = `<strong>${areaHA.toFixed(2)} ha</strong> (${areaM2.toLocaleString('es-PE', {maximumFractionDigits:2})} m²)`;
 
-            // Conversión usando Proj4
-            const p1 = proj4(utmZona, wgs84, [p1_E, p1_N]);
-            const p2 = proj4(utmZona, wgs84, [p2_E, p2_N]);
-            const p3 = proj4(utmZona, wgs84, [p3_E, p3_N]);
-            const p4 = proj4(utmZona, wgs84, [p4_E, p4_N]);
+            // Conversión UTM a Geográficas usando las variables globales de Proj4
+            const p1 = proj4(window.utmZonaGlobal, window.wgs84Global, [p1_E, p1_N]);
+            const p2 = proj4(window.utmZonaGlobal, window.wgs84Global, [p2_E, p2_N]);
+            const p3 = proj4(window.utmZonaGlobal, window.wgs84Global, [p3_E, p3_N]);
+            const p4 = proj4(window.utmZonaGlobal, window.wgs84Global, [p4_E, p4_N]);
 
-            datosGeograficosKML = { p1, p2, p3, p4 };
+            window.datosGeograficosKML = { p1, p2, p3, p4 };
 
-            // Leaflet requiere coordenadas en formato [Lat, Lng]
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
@@ -158,10 +145,10 @@
                 [p3[1], p3[0]]
             ];
 
-            if (capaPoligono) { map.removeLayer(capaPoligono); }
+            if (window.capaPoligono) { window.mapGlobal.removeLayer(window.capaPoligono); }
 
-            capaPoligono = L.polygon(latlngs, { color: '#00ffff', weight: 3, fillColor: '#00ffff', fillOpacity: 0.15 }).addTo(map);
-            map.fitBounds(capaPoligono.getBounds(), { padding: [20, 20] });
+            window.capaPoligono = L.polygon(latlngs, { color: '#00ffff', weight: 3, fillColor: '#00ffff', fillOpacity: 0.15 }).addTo(window.mapGlobal);
+            window.mapGlobal.fitBounds(window.capaPoligono.getBounds(), { padding: [20, 20] });
 
             document.getElementById('mensaje-estado').innerText = "Estructura perimetral validada. Red lista.";
             document.getElementById('mensaje-estado').style.color = "#27ae60";
@@ -173,11 +160,11 @@
     }
 
     function descargarKML() {
-        if (!datosGeograficosKML) {
+        if (!window.datosGeograficosKML) {
             alert("Primero debes hacer clic en 'Validar Red de Coordenadas'.");
             return;
         }
-        const { p1, p2, p3, p4 } = datosGeograficosKML;
+        const { p1, p2, p3, p4 } = window.datosGeograficosKML;
         
         const kmlContenido = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://opengis.net">
