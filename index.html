@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,111 +6,355 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Coordenadas Satelital</title>
     
-    <!-- Enlaces directos a las librerías oficiales de mapas y proyecciones -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
-    <script src="https://cloudflare.com"></script>
-    <script src="https://cloudflare.com"></script>
+    <!-- ✅ Librerías correctas desde CDN confiable (unpkg) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
 
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f6; margin: 20px; color: #333; }
-        .main-container { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .panel { background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        h2 { font-size: 1.1em; margin: 0 0 15px 0; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }
-        .input-group { margin-bottom: 12px; }
-        .input-group label { display: block; font-weight: bold; font-size: 0.85em; margin-bottom: 4px; color: #555; }
-        .coord-row { display: flex; gap: 10px; margin-bottom: 4px; }
-        input[type="number"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
-        #mapa-vista { width: 100%; height: 380px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; background-color: #fcfcfc; }
-        .estado-red { font-size: 0.9em; color: #d35400; text-align: center; font-weight: bold; margin-bottom: 10px; }
-        .info-box { background-color: #f8f9fa; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9em; }
-        .btn-validar { display: block; width: 100%; background-color: #27ae60; color: white; text-align: center; padding: 12px; border: none; border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        .btn-validar:hover { background-color: #219653; }
-        .btn-descargar { display: block; width: 100%; background-color: #2980b9; color: white; text-align: center; padding: 12px; border: none; border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer; }
-        .btn-descargar:hover { background-color: #1f618d; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh;
+            padding: 20px; 
+            color: #333; 
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .main-container { 
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+        .panel { 
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        h2 { 
+            font-size: 1.3em;
+            margin: 0 0 20px 0;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+            color: #333;
+        }
+        .input-group { 
+            margin-bottom: 15px;
+        }
+        .input-group label { 
+            display: block;
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-bottom: 6px;
+            color: #555;
+        }
+        .coord-row { 
+            display: flex;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .coord-row input {
+            flex: 1;
+        }
+        input[type="number"] { 
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+        #mapa-vista { 
+            width: 100%;
+            height: 420px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #f5f5f5;
+        }
+        .estado-red { 
+            font-size: 0.95em;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: #f0f4ff;
+            color: #667eea;
+        }
+        .estado-red.exito {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .estado-red.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .estado-red.cargando {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        .info-box { 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+        .info-box strong {
+            color: #333;
+            display: block;
+            margin-bottom: 8px;
+        }
+        #calculo-area {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-direction: column;
+        }
+        .btn-validar, .btn-descargar { 
+            display: block;
+            width: 100%;
+            color: white;
+            text-align: center;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-validar { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-validar:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-validar:active {
+            transform: translateY(0);
+        }
+        .btn-descargar { 
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .btn-descargar:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+        }
+        .btn-descargar:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 1.8em;
+            }
+            #mapa-vista {
+                height: 300px;
+            }
+        }
+
+        /* Spinner de carga */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-<div class="main-container">
-    <div class="panel">
-        <div>
-            <h2>Puntos Maestros (Límites UTM)</h2>
-            <div class="input-group">
-                <label>P1 NW (Este / Norte):</label>
-                <div class="coord-row">
-                    <input type="number" id="p1_este" value="316450.93" step="0.01">
-                    <input type="number" id="p1_norte" value="9294831.28" step="0.01">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>P2 NE (Este / Norte):</label>
-                <div class="coord-row">
-                    <input type="number" id="p2_este" value="321292.90" step="0.01">
-                    <input type="number" id="p2_norte" value="9295017.55" step="0.01">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>P3 SW (Este / Norte):</label>
-                <div class="coord-row">
-                    <input type="number" id="p3_este" value="316681.47" step="0.01">
-                    <input type="number" id="p3_norte" value="9292204.12" step="0.01">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>P4 SE (Este / Norte):</label>
-                <div class="coord-row">
-                    <input type="number" id="p4_este" value="321086.39" step="0.01">
-                    <input type="number" id="p4_norte" value="9292150.23" step="0.01">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>Intervalo de Muestreo Técnico (Metros):</label>
-                <input type="number" id="intervalo" value="10">
-            </div>
-        </div>
-        <button class="btn-validar" onclick="procesarTodo()">Validar Red de Coordenadas</button>
+<div class="container">
+    <div class="header">
+        <h1>🗺️ Visor de Coordenadas Satelital</h1>
+        <p>Sistema de validación de coordenadas UTM Zona 18 Sur (Perú)</p>
     </div>
-    <div class="panel">
-        <h2>Vista de Control Topológico</h2>
-        <div id="mapa-vista"></div>
-        <div class="estado-red" id="mensaje-estado">Conectando con el servidor de mapas...</div>
-        <div class="info-box">
-            <strong>Área Total Calculada:</strong>
-            <div id="calculo-area" style="margin-top: 5px; font-size: 1.1em; color: #2c3e50;">0.00 ha (0 m²)</div>
+
+    <div class="main-container">
+        <!-- Panel Izquierdo: Entrada de datos -->
+        <div class="panel">
+            <div>
+                <h2>📍 Puntos Maestros (Límites UTM)</h2>
+                
+                <div class="input-group">
+                    <label>P1 NW (Este / Norte):</label>
+                    <div class="coord-row">
+                        <input type="number" id="p1_este" value="316450.93" step="0.01" placeholder="Este">
+                        <input type="number" id="p1_norte" value="9294831.28" step="0.01" placeholder="Norte">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>P2 NE (Este / Norte):</label>
+                    <div class="coord-row">
+                        <input type="number" id="p2_este" value="321292.90" step="0.01" placeholder="Este">
+                        <input type="number" id="p2_norte" value="9295017.55" step="0.01" placeholder="Norte">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>P3 SW (Este / Norte):</label>
+                    <div class="coord-row">
+                        <input type="number" id="p3_este" value="316681.47" step="0.01" placeholder="Este">
+                        <input type="number" id="p3_norte" value="9292204.12" step="0.01" placeholder="Norte">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>P4 SE (Este / Norte):</label>
+                    <div class="coord-row">
+                        <input type="number" id="p4_este" value="321086.39" step="0.01" placeholder="Este">
+                        <input type="number" id="p4_norte" value="9292150.23" step="0.01" placeholder="Norte">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Intervalo de Muestreo Técnico (Metros):</label>
+                    <input type="number" id="intervalo" value="10" min="1" step="1">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-validar" id="btnValidar" onclick="procesarTodo()">
+                    ✓ Validar Red de Coordenadas
+                </button>
+            </div>
         </div>
-        <button class="btn-descargar" onclick="descargarKML()">Descargar Red en KML</button>
+
+        <!-- Panel Derecho: Mapa y resultados -->
+        <div class="panel">
+            <div>
+                <h2>🛰️ Vista de Control Topológico</h2>
+                <div id="mapa-vista"></div>
+                <div class="estado-red" id="mensaje-estado">
+                    <span class="spinner"></span>Inicializando sistema de mapas...
+                </div>
+                
+                <div class="info-box">
+                    <strong>📐 Área Total Calculada:</strong>
+                    <div id="calculo-area">0.00 ha (0 m²)</div>
+                </div>
+            </div>
+
+            <button class="btn-descargar" id="btnDescargar" onclick="descargarKML()" disabled>
+                ⬇️ Descargar Red en KML
+            </button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>💡 Proyecto RED-DE-COORDENADAS | UNSM-DJDL | Sistema de Validación Topológica</p>
+        <p>Datos © OpenStreetMap | Conversión UTM ↔ WGS84 via Proj4</p>
     </div>
 </div>
+
 <script>
+    // ============================================
+    // VARIABLES GLOBALES
+    // ============================================
     const utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
     const wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
+    
     let map = null;
     let capaPoligono = null;
     let datosGeograficosKML = null;
+    let sistemaSoloListo = false;
 
-    // Inicialización segura controlando que los scripts externos ya existan en el navegador
-    function iniciarSistema() {
+    // ============================================
+    // INICIALIZACIÓN DEL MAPA
+    // ============================================
+    function inicializarMapa() {
         try {
+            // Crear mapa centrado en Perú
             map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
-            
-            // Carga directa del mapa base satelital híbrido de Google
-            L.tileLayer('https://google.com{x}&y={y}&z={z}', {
+
+            // Capa base: OpenStreetMap (más confiable que Google)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 20,
-                attribution: '© Google Satélite'
+                minZoom: 2,
+                attribution: '© OpenStreetMap contributors | Coordenadas UTM Zona 18S'
             }).addTo(map);
 
-            var txtEstado = document.getElementById('mensaje-estado');
-            txtEstado.innerText = "Sistema listo. Presiona el botón verde.";
-            txtEstado.style.color = "#27ae60";
-        } catch (e) {
-            console.error(e);
-            document.getElementById('mensaje-estado').innerText = "Error al inicializar los mapas. Recarga la página.";
-            document.getElementById('mensaje-estado').style.color = "#c0392b";
+            // Marcar sistema como listo
+            sistemaSoloListo = true;
+            
+            // Mensajes de estado
+            const msgEstado = document.getElementById('mensaje-estado');
+            msgEstado.className = 'estado-red exito';
+            msgEstado.innerHTML = '✓ Sistema de mapas listo. Ingresa coordenadas y presiona validar.';
+            
+            console.log('✅ Leaflet inicializado correctamente');
+            console.log('✅ Proj4 disponible:', typeof proj4 !== 'undefined');
+
+        } catch (error) {
+            console.error('❌ Error al inicializar mapa:', error);
+            document.getElementById('mensaje-estado').className = 'estado-red error';
+            document.getElementById('mensaje-estado').innerHTML = '❌ Error al inicializar mapas. Recarga la página.';
         }
     }
 
-    // Activar el inicio automático cuando la página web termine de estructurarse
-    window.addEventListener('load', iniciarSistema);
-
+    // ============================================
+    // FUNCIONES DE CÁLCULO
+    // ============================================
     function calcularAreaMetrica(puntos) {
         let area = 0;
         let j = puntos.length - 1;
@@ -120,12 +365,21 @@
         return Math.abs(area / 2);
     }
 
+    // ============================================
+    // PROCESAMIENTO PRINCIPAL
+    // ============================================
     function procesarTodo() {
-        if (!map || typeof proj4 === 'undefined') {
-            alert("Los componentes web continúan cargándose. Espera un segundo.");
+        // Verificar que las librerías están listas
+        if (!sistemaSoloListo || typeof proj4 === 'undefined' || !window.L) {
+            const msgEstado = document.getElementById('mensaje-estado');
+            msgEstado.className = 'estado-red cargando';
+            msgEstado.innerHTML = '<span class="spinner"></span>Cargando componentes, por favor espera...';
+            setTimeout(procesarTodo, 1000);
             return;
         }
+
         try {
+            // Leer coordenadas del formulario
             const p1_E = parseFloat(document.getElementById('p1_este').value);
             const p1_N = parseFloat(document.getElementById('p1_norte').value);
             const p2_E = parseFloat(document.getElementById('p2_este').value);
@@ -135,27 +389,38 @@
             const p4_E = parseFloat(document.getElementById('p4_este').value);
             const p4_N = parseFloat(document.getElementById('p4_norte').value);
 
+            // Validar que todas las coordenadas sean números
             if ([p1_E, p1_N, p2_E, p2_N, p3_E, p3_N, p4_E, p4_N].some(isNaN)) {
-                document.getElementById('mensaje-estado').innerText = "Introduce coordenadas numéricas válidas.";
-                document.getElementById('mensaje-estado').style.color = "#c0392b";
+                const msgEstado = document.getElementById('mensaje-estado');
+                msgEstado.className = 'estado-red error';
+                msgEstado.innerHTML = '❌ Error: Introduce coordenadas numéricas válidas en todos los campos.';
                 return;
             }
 
-            // Validar superficie métrica plana
-            const verticesUTM = [{E: p1_E, N: p1_N}, {E: p2_E, N: p2_N}, {E: p4_E, N: p4_N}, {E: p3_E, N: p3_N}];
+            // Calcular área en metros cuadrados
+            const verticesUTM = [
+                {E: p1_E, N: p1_N}, 
+                {E: p2_E, N: p2_N}, 
+                {E: p4_E, N: p4_N}, 
+                {E: p3_E, N: p3_N}
+            ];
             const areaM2 = calcularAreaMetrica(verticesUTM);
             const areaHA = areaM2 / 10000;
-            document.getElementById('calculo-area').innerHTML = `<strong>${areaHA.toFixed(2)} ha</strong> (${areaM2.toLocaleString('es-PE', {maximumFractionDigits:2})} m²)`;
 
-            // Transformar de UTM a Latitud y Longitud geográficas
+            // Mostrar área calculada
+            document.getElementById('calculo-area').innerHTML = 
+                `<strong>${areaHA.toFixed(2)} ha</strong> (${areaM2.toLocaleString('es-PE', {maximumFractionDigits: 2})} m²)`;
+
+            // Transformar de UTM a WGS84 (Latitud/Longitud)
             const p1 = proj4(utmZona, wgs84, [p1_E, p1_N]);
             const p2 = proj4(utmZona, wgs84, [p2_E, p2_N]);
             const p3 = proj4(utmZona, wgs84, [p3_E, p3_N]);
             const p4 = proj4(utmZona, wgs84, [p4_E, p4_N]);
 
+            // Guardar para exportar KML
             datosGeograficosKML = { p1, p2, p3, p4 };
 
-            // Leaflet requiere formato estricto [Latitud, Longitud]
+            // Formato de Leaflet: [Latitud, Longitud]
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
@@ -163,37 +428,168 @@
                 [p3[1], p3[0]]
             ];
 
-            if (capaPoligono) { map.removeLayer(capaPoligono); }
+            // Remover polígono anterior si existe
+            if (capaPoligono) { 
+                map.removeLayer(capaPoligono); 
+            }
 
-            // Dibujar el perímetro con un trazado cian brillante de alta visibilidad
-            capaPoligono = L.polygon(latlngs, { color: '#00ffff', weight: 3, fillColor: '#00ffff', fillOpacity: 0.15 }).addTo(map);
+            // Dibujar nuevo polígono en el mapa
+            capaPoligono = L.polygon(latlngs, { 
+                color: '#667eea',
+                weight: 3,
+                fillColor: '#667eea',
+                fillOpacity: 0.2,
+                dashArray: '5, 5'
+            }).addTo(map);
+
+            // Agregar marcadores en cada esquina
+            const esquinas = [
+                {coords: latlngs[0], label: 'P1 NW'},
+                {coords: latlngs[1], label: 'P2 NE'},
+                {coords: latlngs[2], label: 'P4 SE'},
+                {coords: latlngs[3], label: 'P3 SW'}
+            ];
+
+            esquinas.forEach(esquina => {
+                L.circleMarker(esquina.coords, {
+                    radius: 6,
+                    fillColor: '#667eea',
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).bindPopup(esquina.label).addTo(map);
+            });
+
+            // Ajustar zoom automáticamente al polígono
             map.fitBounds(capaPoligono.getBounds(), { padding: [50, 50] });
 
-            document.getElementById('mensaje-estado').innerText = "Estructura perimetral validada. Red lista.";
-            document.getElementById('mensaje-estado').style.color = "#27ae60";
+            // Mensaje de éxito
+            const msgEstado = document.getElementById('mensaje-estado');
+            msgEstado.className = 'estado-red exito';
+            msgEstado.innerHTML = '✓ Estructura perimetral validada. Red lista para exportar.';
+
+            // Habilitar botón de descarga
+            document.getElementById('btnDescargar').disabled = false;
+
         } catch (error) {
-            console.error(error);
-            document.getElementById('mensaje-estado').innerText = "Error al procesar los vectores gráficos.";
-            document.getElementById('mensaje-estado').style.color = "#c0392b";
+            console.error('❌ Error en procesarTodo:', error);
+            const msgEstado = document.getElementById('mensaje-estado');
+            msgEstado.className = 'estado-red error';
+            msgEstado.innerHTML = '❌ Error al procesar los vectores gráficos: ' + error.message;
         }
     }
 
+    // ============================================
+    // EXPORTAR A KML
+    // ============================================
     function descargarKML() {
         if (!datosGeograficosKML) {
-            alert("Primero debes hacer clic en 'Validar Red de Coordenadas'.");
+            alert('⚠️ Primero debes hacer clic en "Validar Red de Coordenadas".');
             return;
         }
+
         const { p1, p2, p3, p4 } = datosGeograficosKML;
         
-        // Formato XML/KML nativo estricto para Google Earth (Longitud, Latitud, Altitud)
-        const kmlContenido = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://opengis.net">\n  <Document>\n    <name>Red_Perimetral_Maestra</name>\n    <Style id="estiloPoligono">\n      <LineStyle><color>ff00ffff</color><width>3</width></LineStyle>\n      <PolyStyle><color>2500ffff</color></PolyStyle>\n    </Style>\n    <Placemark>\n      <name>Polígono Validado</name>\n      <styleUrl>#estiloPoligono</styleUrl>\n      <Polygon>\n        <outerBoundaryIs>\n          <LinearRing>\n            <coordinates>\n              ${p1[0]},${p1[1]},0.0\n              ${p2[0]},${p2[1]},0.0\n              ${p4[0]},${p4[1]},0.0\n              ${p3[0]},${p3[1]},0.0\n              ${p1[0]},${p1[1]},0.0\n            </coordinates>\n          </LinearRing>\n        </outerBoundaryIs>\n      </Polygon>\n    </Placemark>\n  </Document>\n</kml>`;
+        // Formato KML estricto (Longitud, Latitud, Altitud)
+        const kmlContenido = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Red_Perimetral_Maestra</name>
+    <description>Validación de coordenadas UTM Zona 18 Sur - Sistema RED-DE-COORDENADAS</description>
+    <Style id="estiloPoligono">
+      <LineStyle>
+        <color>ff667eea</color>
+        <width>3</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>33667eea</color>
+        <fill>1</fill>
+        <outline>1</outline>
+      </PolyStyle>
+    </Style>
+    <Style id="estiloMarcador">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    
+    <Placemark>
+      <name>Polígono Validado</name>
+      <styleUrl>#estiloPoligono</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              ${p1[0]},${p1[1]},0.0
+              ${p2[0]},${p2[1]},0.0
+              ${p4[0]},${p4[1]},0.0
+              ${p3[0]},${p3[1]},0.0
+              ${p1[0]},${p1[1]},0.0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
 
+    <Placemark>
+      <name>P1 NW</name>
+      <styleUrl>#estiloMarcador</styleUrl>
+      <Point>
+        <coordinates>${p1[0]},${p1[1]},0.0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>P2 NE</name>
+      <styleUrl>#estiloMarcador</styleUrl>
+      <Point>
+        <coordinates>${p2[0]},${p2[1]},0.0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>P4 SE</name>
+      <styleUrl>#estiloMarcador</styleUrl>
+      <Point>
+        <coordinates>${p4[0]},${p4[1]},0.0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>P3 SW</name>
+      <styleUrl>#estiloMarcador</styleUrl>
+      <Point>
+        <coordinates>${p3[0]},${p3[1]},0.0</coordinates>
+      </Point>
+    </Placemark>
+  </Document>
+</kml>`;
+
+        // Crear blob y descargar
         const blob = new Blob([kmlContenido], { type: "application/vnd.google-earth.kml+xml" });
         const enlace = document.createElement("a");
         enlace.href = URL.createObjectURL(blob);
-        enlace.download = "red_coordenadas_maestras.kml";
+        enlace.download = "red_coordenadas_maestras_" + new Date().getTime() + ".kml";
+        document.body.appendChild(enlace);
         enlace.click();
+        document.body.removeChild(enlace);
         URL.revokeObjectURL(enlace.href);
+    }
+
+    // ============================================
+    // INICIALIZACIÓN AUTOMÁTICA
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 DOM listo, inicializando...');
+        inicializarMapa();
+    });
+
+    // Fallback si DOMContentLoaded ya pasó
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializarMapa);
+    } else {
+        inicializarMapa();
     }
 </script>
 </body>
