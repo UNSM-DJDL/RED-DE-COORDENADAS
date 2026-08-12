@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Coordenadas Satelital</title>
+    
+    <!-- Librerías estables de mapas y proyecciones -->
+    <link rel="stylesheet" href="https://cloudflare.com" />
+    <script src="https://cloudflare.com"></script>
+    <script src="https://cloudflare.com"></script>
+
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f6; margin: 20px; color: #333; }
         .main-container { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
@@ -65,7 +71,7 @@
     <div class="panel">
         <h2>Vista de Control Topológico</h2>
         <div id="mapa-vista"></div>
-        <div class="estado-red" id="mensaje-estado">Esperando validación de coordenadas...</div>
+        <div class="estado-red" id="mensaje-estado">Cargando mapa base satelital...</div>
         <div class="info-box">
             <strong>Área Total Calculada:</strong>
             <div id="calculo-area" style="margin-top: 5px; font-size: 1.1em; color: #2c3e50;">0.00 ha (0 m²)</div>
@@ -75,40 +81,28 @@
 </div>
 
 <script>
-    // Inyección dinámica de librerías oficiales usando decodificación segura
-    function cargarLibrerias() {
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = atob('aHR0cHM6Ly91bnBrZy5jb20vbGVhZmxldEAxLjkuNC9kaXN0L2xlYWZsZXQuY3Nz');
-        document.head.appendChild(link);
+    // Configuración UTM Zona 18S
+    const utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
+    const wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
+    let map = null;
+    let capaPoligono = null;
+    let datosGeograficosKML = null;
 
-        var s1 = document.createElement('script');
-        s1.src = atob('aHR0cHM6Ly91bnBrZy5jb20vbGVhZmxldEAxLjkuNC9kaXN0L2xlYWZsZXQuanM=');
-        s1.onload = function() {
-            var s2 = document.createElement('script');
-            s2.src = atob('aHR0cHM6Ly91bnBrZy5jb20vcHJvajRAMi4xMS4wL2Rpc3QvcHJvajQuanM=');
-            s2.onload = function() {
-                inicializarMapa();
-            };
-            document.head.appendChild(s2);
-        };
-        document.head.appendChild(s1);
-    }
-
-    window.utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
-    window.wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
-    window.map = null;
-    window.capaPoligono = null;
-    window.datosGeograficosKML = null;
-
-    function inicializarMapa() {
-        window.map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
-        L.tileLayer('https://google.com{x}&y={y}&z={z}', {
-            maxZoom: 20,
-            attribution: '© Google Satélite'
-        }).addTo(window.map);
-        document.getElementById('mensaje-estado').innerText = "Sistema de mapas listo. Ingresa coordenadas.";
-    }
+    // Inicialización automática cuando la página termina de cargar
+    window.addEventListener('DOMContentLoaded', function() {
+        if (typeof L !== 'undefined') {
+            map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
+            L.tileLayer('https://google.com{x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '© Google Satélite'
+            }).addTo(map);
+            document.getElementById('mensaje-estado').innerText = "Sistema listo. Presiona Validar.";
+            document.getElementById('mensaje-estado').style.color = "#27ae60";
+        } else {
+            document.getElementById('mensaje-estado').innerText = "Error al cargar librerías de mapas.";
+            document.getElementById('mensaje-estado').style.color = "#c0392b";
+        }
+    });
 
     function calcularAreaMetrica(puntos) {
         let area = 0;
@@ -121,9 +115,8 @@
     }
 
     function procesarTodo() {
-        if (!window.proj4 || !window.L || !window.map) {
-            document.getElementById('mensaje-estado').innerText = "Cargando componentes del mapa, por favor espera un segundo...";
-            document.getElementById('mensaje-estado').style.color = "#e67e22";
+        if (!map || typeof proj4 === 'undefined') {
+            alert("Las librerías aún se están cargando. Espera un segundo.");
             return;
         }
         try {
@@ -142,18 +135,21 @@
                 return;
             }
 
+            // Calcular área métrica
             const verticesUTM = [{E: p1_E, N: p1_N}, {E: p2_E, N: p2_N}, {E: p4_E, N: p4_N}, {E: p3_E, N: p3_N}];
             const areaM2 = calcularAreaMetrica(verticesUTM);
             const areaHA = areaM2 / 10000;
             document.getElementById('calculo-area').innerHTML = `<strong>${areaHA.toFixed(2)} ha</strong> (${areaM2.toLocaleString('es-PE', {maximumFractionDigits:2})} m²)`;
 
-            const p1 = proj4(window.utmZona, window.wgs84, [p1_E, p1_N]);
-            const p2 = proj4(window.utmZona, window.wgs84, [p2_E, p2_N]);
-            const p3 = proj4(window.utmZona, window.wgs84, [p3_E, p3_N]);
-            const p4 = proj4(window.utmZona, window.wgs84, [p4_E, p4_N]);
+            // Conversión UTM a Lat/Lng geográficas
+            const p1 = proj4(utmZona, wgs84, [p1_E, p1_N]);
+            const p2 = proj4(utmZona, wgs84, [p2_E, p2_N]);
+            const p3 = proj4(utmZona, wgs84, [p3_E, p3_N]);
+            const p4 = proj4(utmZona, wgs84, [p4_E, p4_N]);
 
-            window.datosGeograficosKML = { p1, p2, p3, p4 };
+            datosGeograficosKML = { p1, p2, p3, p4 };
 
+            // Formato de Leaflet pide [Latitud, Longitud]
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
@@ -161,10 +157,10 @@
                 [p3[1], p3[0]]
             ];
 
-            if (window.capaPoligono) { window.map.removeLayer(window.capaPoligono); }
+            if (capaPoligono) { map.removeLayer(capaPoligono); }
 
-            window.capaPoligono = L.polygon(latlngs, { color: '#00ffff', weight: 3, fillColor: '#00ffff', fillOpacity: 0.15 }).addTo(window.map);
-            window.map.fitBounds(window.capaPoligono.getBounds(), { padding: [20, 20] });
+            capaPoligono = L.polygon(latlngs, { color: '#00ffff', weight: 3, fillColor: '#00ffff', fillOpacity: 0.15 }).addTo(map);
+            map.fitBounds(capaPoligono.getBounds(), { padding: [20, 20] });
 
             document.getElementById('mensaje-estado').innerText = "Estructura perimetral validada. Red lista.";
             document.getElementById('mensaje-estado').style.color = "#27ae60";
@@ -176,8 +172,8 @@
     }
 
     function descargarKML() {
-        if (!window.datosGeograficosKML) {
+        if (!datosGeograficosKML) {
             alert("Primero debes hacer clic en 'Validar Red de Coordenadas'.");
             return;
         }
-        const { p1, p2, p3, p4 } = window.datosGeograficosKML;
+        const { p1, p2, p3, p4 } = datosGeograficosKML;
