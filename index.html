@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Coordenadas Satelital</title>
     
-    <!-- ✅ Estilos oficiales de mapas (URL corta para que no se corte) -->
+    <!-- Hojas de estilo del mapa -->
     <link rel="stylesheet" href="https://unpkg.com" />
     
     <style>
@@ -78,7 +78,7 @@
     </div>
 </div>
 
-<!-- ✅ Carga segura de códigos base (Rutas completas e imbatibles) -->
+<!-- Scripts de Ejecución Cargados Correctamente -->
 <script src="https://unpkg.com"></script>
 <script src="https://unpkg.com"></script>
 <script>
@@ -134,6 +134,7 @@
 
             datosGeograficosKML = { p1, p2, p3, p4 };
 
+            // Inversión estricta a [Latitud, Longitud] para Leaflet
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
