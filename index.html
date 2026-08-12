@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Divisor de KML - Control Topológico con Satélite</title>
+    <title>Visor de Coordenadas Satelital</title>
     
-    <!-- ✅ URL Real de Estilos de Leaflet -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
+    <!-- ✅ Estilos oficiales de mapas (URL corta para que no se corte) -->
+    <link rel="stylesheet" href="https://unpkg.com" />
     
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f6; margin: 20px; color: #333; }
@@ -27,7 +27,6 @@
     </style>
 </head>
 <body>
-
 <div class="main-container">
     <div class="panel">
         <div>
@@ -67,7 +66,6 @@
         </div>
         <button class="btn-validar" onclick="procesarTodo()">Validar Red de Coordenadas</button>
     </div>
-
     <div class="panel">
         <h2>Vista de Control Topológico</h2>
         <div id="mapa-vista"></div>
@@ -80,9 +78,9 @@
     </div>
 </div>
 
-<!-- ✅ URLs Reales del Servidor CDN para Descargar los Códigos Base -->
-<script src="https://cloudflare.com"></script>
-<script src="https://cloudflare.com"></script>
+<!-- ✅ Carga segura de códigos base (Rutas completas e imbatibles) -->
+<script src="https://unpkg.com"></script>
+<script src="https://unpkg.com"></script>
 <script>
     const utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
     const wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
@@ -136,7 +134,6 @@
 
             datosGeograficosKML = { p1, p2, p3, p4 };
 
-            // Inversión estricta a [Latitud, Longitud] para Leaflet
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
