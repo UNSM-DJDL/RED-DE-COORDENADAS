@@ -1,1 +1,4 @@
-@import url('https://cloudflare.com');
+var styleLink = document.createElement('link');
+styleLink.rel = 'stylesheet';
+styleLink.href = atob('aHR0cHM6Ly91bnBrZy5jb20vbGVhZmxldEAxLjkuNC9kaXN0L2xlYWZsZXQuY3Nz');
+document.head.appendChild(styleLink);
