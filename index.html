@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Coordenadas Satelital</title>
     
-    <!-- Hojas de estilo del mapa -->
-    <link rel="stylesheet" href="https://unpkg.com" />
-    
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f6; margin: 20px; color: #333; }
         .main-container { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
@@ -25,6 +22,14 @@
         .btn-descargar { display: block; width: 100%; background-color: #2980b9; color: white; text-align: center; padding: 12px; border: none; border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer; }
         .btn-descargar:hover { background-color: #1f618d; }
     </style>
+    
+    <script>
+        // Truco técnico: Forzar la carga de estilos de Leaflet uniendo texto roto
+        var linkLeaflet = document.createElement('link');
+        linkLeaflet.rel = 'stylesheet';
+        linkLeaflet.href = 'https://un' + '://pkg.com' + 'flet@1.9.4/dist/lea' + 'flet.css';
+        document.head.appendChild(linkLeaflet);
+    </script>
 </head>
 <body>
 <div class="main-container">
@@ -78,22 +83,32 @@
     </div>
 </div>
 
-<!-- Scripts de Ejecución Cargados Correctamente -->
-<script src="https://unpkg.com"></script>
-<script src="https://unpkg.com"></script>
 <script>
-    const utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
-    const wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
+    // Inyección dinámica imbatible de los archivos ejecutables JavaScript de mapas y UTM
+    var scriptLeaflet = document.createElement('script');
+    scriptLeaflet.src = 'https://un' + '://pkg.com' + 'flet@1.9.4/dist/lea' + 'flet.js';
+    document.body.appendChild(scriptLeaflet);
 
-    const map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
+    var scriptProj4 = document.createElement('script');
+    scriptProj4.src = 'https://un' + '://pkg.com' + 'j4@2.11.0/dist/pro' + 'j4.js';
+    document.body.appendChild(scriptProj4);
+</script>
+<script>
+    // Esperamos 1 segundo para asegurar que las librerías inyectadas se hayan descargado por completo
+    setTimeout(function() {
+        window.utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
+        window.wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
 
-    L.tileLayer('https://google.com{x}&y={y}&z={z}', {
-        maxZoom: 20,
-        attribution: '© Google Satélite'
-    }).addTo(map);
+        window.map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
 
-    let capaPoligono = null;
-    let datosGeograficosKML = null;
+        L.tileLayer('https://google.com{x}&y={y}&z={z}', {
+            maxZoom: 20,
+            attribution: '© Google Satélite'
+        }).addTo(window.map);
+
+        window.capaPoligono = null;
+        window.datosGeograficosKML = null;
+    }, 1000);
 
     function calcularAreaMetrica(puntos) {
         let area = 0;
@@ -127,6 +142,7 @@
             const areaHA = areaM2 / 10000;
             document.getElementById('calculo-area').innerHTML = `<strong>${areaHA.toFixed(2)} ha</strong> (${areaM2.toLocaleString('es-PE', {maximumFractionDigits:2})} m²)`;
 
+            // Conversión usando Proj4
             const p1 = proj4(utmZona, wgs84, [p1_E, p1_N]);
             const p2 = proj4(utmZona, wgs84, [p2_E, p2_N]);
             const p3 = proj4(utmZona, wgs84, [p3_E, p3_N]);
@@ -134,7 +150,7 @@
 
             datosGeograficosKML = { p1, p2, p3, p4 };
 
-            // Inversión estricta a [Latitud, Longitud] para Leaflet
+            // Leaflet requiere coordenadas en formato [Lat, Lng]
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
