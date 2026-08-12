@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Coordenadas Satelital</title>
+    
+    <!-- Enlaces directos a las librerías oficiales de mapas y proyecciones -->
+    <link rel="stylesheet" href="https://cloudflare.com" />
+    <script src="https://cloudflare.com"></script>
+    <script src="https://cloudflare.com"></script>
+
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f6; margin: 20px; color: #333; }
         .main-container { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
@@ -21,23 +27,6 @@
         .btn-descargar { display: block; width: 100%; background-color: #2980b9; color: white; text-align: center; padding: 12px; border: none; border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer; }
         .btn-descargar:hover { background-color: #1f618d; }
     </style>
-    <script>
-        // Carga de librerías oficiales codificadas para burlar los filtros de texto
-        (function() {
-            var css = document.createElement('link');
-            css.rel = 'stylesheet';
-            css.href = atob('aHR0cHM6Ly9jZG5qcy5jbG91ZGZsYXJlLmNvbS9hamF4L2xpYnMvbGVhZmxldC8xLjkuNC9sZWFmbGV0LmNzcw==');
-            document.head.appendChild(css);
-
-            var js1 = document.createElement('script');
-            js1.src = atob('aHR0cHM6Ly9jZG5qcy5jbG91ZGZsYXJlLmNvbS9hamF4L2xpYnMvbGVhZmxldC8xLjkuNC9sZWFmbGV0Lmpz');
-            document.head.appendChild(js1);
-
-            var js2 = document.createElement('script');
-            js2.src = atob('aHR0cHM6Ly9jZG5qcy5jbG91ZGZsYXJlLmNvbS9hamF4L2xpYnMvcHJvajRhcy8yLjExLjAvcHJvajRzLmpz');
-            document.head.appendChild(js2);
-        })();
-    </script>
 </head>
 <body>
 <div class="main-container">
@@ -82,7 +71,7 @@
     <div class="panel">
         <h2>Vista de Control Topológico</h2>
         <div id="mapa-vista"></div>
-        <div class="estado-red" id="mensaje-estado">Descargando mapa base satelital...</div>
+        <div class="estado-red" id="mensaje-estado">Conectando con el servidor de mapas...</div>
         <div class="info-box">
             <strong>Área Total Calculada:</strong>
             <div id="calculo-area" style="margin-top: 5px; font-size: 1.1em; color: #2c3e50;">0.00 ha (0 m²)</div>
@@ -97,21 +86,29 @@
     let capaPoligono = null;
     let datosGeograficosKML = null;
 
-    // Bucle para esperar de forma segura que las librerías carguen en memoria
-    var bucleEspera = setInterval(function() {
-        if (typeof L !== 'undefined' && typeof proj4 !== 'undefined') {
-            clearInterval(bucleEspera);
+    // Inicialización segura controlando que los scripts externos ya existan en el navegador
+    function iniciarSistema() {
+        try {
             map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
+            
+            // Carga directa del mapa base satelital híbrido de Google
             L.tileLayer('https://google.com{x}&y={y}&z={z}', {
                 maxZoom: 20,
                 attribution: '© Google Satélite'
             }).addTo(map);
-            
+
             var txtEstado = document.getElementById('mensaje-estado');
-            txtEstado.innerText = "Sistema satelital activo correctamente.";
+            txtEstado.innerText = "Sistema listo. Presiona el botón verde.";
             txtEstado.style.color = "#27ae60";
+        } catch (e) {
+            console.error(e);
+            document.getElementById('mensaje-estado').innerText = "Error al inicializar los mapas. Recarga la página.";
+            document.getElementById('mensaje-estado').style.color = "#c0392b";
         }
-    }, 200);
+    }
+
+    // Activar el inicio automático cuando la página web termine de estructurarse
+    window.addEventListener('load', iniciarSistema);
 
     function calcularAreaMetrica(puntos) {
         let area = 0;
@@ -125,7 +122,7 @@
 
     function procesarTodo() {
         if (!map || typeof proj4 === 'undefined') {
-            alert("Los módulos cartográficos continúan descargándose. Espera un momento.");
+            alert("Los componentes web continúan cargándose. Espera un segundo.");
             return;
         }
         try {
@@ -144,11 +141,13 @@
                 return;
             }
 
+            // Validar superficie métrica plana
             const verticesUTM = [{E: p1_E, N: p1_N}, {E: p2_E, N: p2_N}, {E: p4_E, N: p4_N}, {E: p3_E, N: p3_N}];
             const areaM2 = calcularAreaMetrica(verticesUTM);
             const areaHA = areaM2 / 10000;
             document.getElementById('calculo-area').innerHTML = `<strong>${areaHA.toFixed(2)} ha</strong> (${areaM2.toLocaleString('es-PE', {maximumFractionDigits:2})} m²)`;
 
+            // Transformar de UTM a Latitud y Longitud geográficas
             const p1 = proj4(utmZona, wgs84, [p1_E, p1_N]);
             const p2 = proj4(utmZona, wgs84, [p2_E, p2_N]);
             const p3 = proj4(utmZona, wgs84, [p3_E, p3_N]);
@@ -156,6 +155,7 @@
 
             datosGeograficosKML = { p1, p2, p3, p4 };
 
+            // Leaflet requiere formato estricto [Latitud, Longitud]
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
@@ -165,6 +165,7 @@
 
             if (capaPoligono) { map.removeLayer(capaPoligono); }
 
+            // Dibujar el perímetro con un trazado cian brillante de alta visibilidad
             capaPoligono = L.polygon(latlngs, { color: '#00ffff', weight: 3, fillColor: '#00ffff', fillOpacity: 0.15 }).addTo(map);
             map.fitBounds(capaPoligono.getBounds(), { padding: [50, 50] });
 
@@ -184,6 +185,7 @@
         }
         const { p1, p2, p3, p4 } = datosGeograficosKML;
         
+        // Formato XML/KML nativo estricto para Google Earth (Longitud, Latitud, Altitud)
         const kmlContenido = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://opengis.net">\n  <Document>\n    <name>Red_Perimetral_Maestra</name>\n    <Style id="estiloPoligono">\n      <LineStyle><color>ff00ffff</color><width>3</width></LineStyle>\n      <PolyStyle><color>2500ffff</color></PolyStyle>\n    </Style>\n    <Placemark>\n      <name>Polígono Validado</name>\n      <styleUrl>#estiloPoligono</styleUrl>\n      <Polygon>\n        <outerBoundaryIs>\n          <LinearRing>\n            <coordinates>\n              ${p1[0]},${p1[1]},0.0\n              ${p2[0]},${p2[1]},0.0\n              ${p4[0]},${p4[1]},0.0\n              ${p3[0]},${p3[1]},0.0\n              ${p1[0]},${p1[1]},0.0\n            </coordinates>\n          </LinearRing>\n        </outerBoundaryIs>\n      </Polygon>\n    </Placemark>\n  </Document>\n</kml>`;
 
         const blob = new Blob([kmlContenido], { type: "application/vnd.google-earth.kml+xml" });
