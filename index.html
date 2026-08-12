@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Divisor de KML - Control Topológico con Satélite</title>
     
-    <!-- Librería CSS de Leaflet para el diseño del mapa -->
+    <!-- ✅ URL Real de Estilos de Leaflet -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     
     <style>
@@ -80,18 +80,15 @@
     </div>
 </div>
 
-<!-- Scripts Oficiales Completos de Leaflet y Proj4js -->
+<!-- ✅ URLs Reales del Servidor CDN para Descargar los Códigos Base -->
 <script src="https://cloudflare.com"></script>
 <script src="https://cloudflare.com"></script>
 <script>
-    // Configuración UTM Zona 18S (Perú / Sudamérica)
     const utmZona = "+proj=utm +zone=18 +south +datum=WGS84 +units=m +no_defs";
     const wgs84 = "+proj=longlat +datum=WGS84 +no_defs";
 
-    // Inicializar mapa interactivo centrado en Perú por defecto
     const map = L.map('mapa-vista').setView([-9.19, -75.01], 5);
 
-    // ✅ CAPA DE SATÉLITE DE GOOGLE HÍBRIDO (CON NOMBRES DE CALLES)
     L.tileLayer('https://google.com{x}&y={y}&z={z}', {
         maxZoom: 20,
         attribution: '© Google Satélite'
@@ -100,7 +97,6 @@
     let capaPoligono = null;
     let datosGeograficosKML = null;
 
-    // Fórmula Shoelace para cálculo geométrico regular de superficies planas
     function calcularAreaMetrica(puntos) {
         let area = 0;
         let j = puntos.length - 1;
@@ -128,13 +124,11 @@
                 return;
             }
 
-            // 1. Calcular área métrica plana
             const verticesUTM = [{E: p1_E, N: p1_N}, {E: p2_E, N: p2_N}, {E: p4_E, N: p4_N}, {E: p3_E, N: p3_N}];
             const areaM2 = calcularAreaMetrica(verticesUTM);
             const areaHA = areaM2 / 10000;
             document.getElementById('calculo-area').innerHTML = `<strong>${areaHA.toFixed(2)} ha</strong> (${areaM2.toLocaleString('es-PE', {maximumFractionDigits:2})} m²)`;
 
-            // 2. Conversión Proj4 de coordenadas métricas UTM a geodésicas [Lng, Lat]
             const p1 = proj4(utmZona, wgs84, [p1_E, p1_N]);
             const p2 = proj4(utmZona, wgs84, [p2_E, p2_N]);
             const p3 = proj4(utmZona, wgs84, [p3_E, p3_N]);
@@ -142,7 +136,7 @@
 
             datosGeograficosKML = { p1, p2, p3, p4 };
 
-            // Reordenar formato para Leaflet [Latitud, Longitud] de forma secuencial
+            // Inversión estricta a [Latitud, Longitud] para Leaflet
             const latlngs = [
                 [p1[1], p1[0]], 
                 [p2[1], p2[0]], 
@@ -152,7 +146,6 @@
 
             if (capaPoligono) { map.removeLayer(capaPoligono); }
 
-            // Dibujar el polígono en pantalla con bordes cian brillantes
             capaPoligono = L.polygon(latlngs, { color: '#00ffff', weight: 3, fillColor: '#00ffff', fillOpacity: 0.15 }).addTo(map);
             map.fitBounds(capaPoligono.getBounds(), { padding: [20, 20] });
 
@@ -172,7 +165,6 @@
         }
         const { p1, p2, p3, p4 } = datosGeograficosKML;
         
-        // Estructura XML nativa para archivo KML de Google Earth (Secuencia estricta Lng,Lat,Alt)
         const kmlContenido = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://opengis.net">
   <Document>
