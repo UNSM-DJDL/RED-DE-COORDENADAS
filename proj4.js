@@ -1,3 +1,3 @@
-var s2 = document.createElement('script');
-s2.src = 'https://cloudflare.com';
-document.head.appendChild(s2);
+var sc2 = document.createElement('script');
+sc2.src = atob('aHR0cHM6Ly91bnBrZy5jb20vcHJvajRAMi4xMS4wL2Rpc3QvcHJvajQuanM=');
+document.head.appendChild(sc2);
